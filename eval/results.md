@@ -1,15 +1,28 @@
-**Eval summary** (8 cases, top_k=5)
+## Eval results (12 cases, top_k=5)
 
-- Retrieval hit-rate: 100%
-- Mean keyword score: 100%
+- **Answer pass-rate: 12/12 (100%)**
+- Retrieval hit-rate (page-level, 9 answerable cases): 100%
 
-| question | expected_source | hit | keyword_score |
-| --- | --- | --- | --- |
-| How do I reset the desk? | Desk User Manual.pdf | True | 1.0 |
-| How do I set a memory height preset on the hand controller? | Desk User Manual.pdf | True | 1.0 |
-| How do I lock the control panel display? | Desk User Manual.pdf | True | 1.0 |
-| What is the difference between Jog and Continuation mode? | Desk User Manual.pdf | True | 1.0 |
-| What is the USB port output voltage and current? | Desk User Manual.pdf | True | 1.0 |
-| What height range can the maximum and minimum height limits be set to? | Desk User Manual.pdf | True | 1.0 |
-| What is the tallest object I can place underneath the desk? | Desk User Manual.pdf | True | 1.0 |
-| How long does assembly take and how many people are needed? | Desk User Manual.pdf | True | 1.0 |
+**By difficulty:**
+- easy: 3/3
+- hard: 2/2
+- medium: 4/4
+- trap: 3/3
+
+**Failures by category:**
+- (none)
+
+| id | difficulty | retrieval_hit | passed | category | detail |
+| --- | --- | --- | --- | --- | --- |
+| easy-usb-current | easy | True | True | pass | all constraints satisfied |
+| easy-object-height | easy | True | True | pass | all constraints satisfied |
+| easy-assembly-people | easy | True | True | pass | all constraints satisfied |
+| med-reset | medium | True | True | pass | all constraints satisfied |
+| med-lock | medium | True | True | pass | all constraints satisfied |
+| med-height-limit | medium | True | True | pass | all constraints satisfied |
+| med-jog-continuation | medium | True | True | pass | all constraints satisfied |
+| trap-lower-key | hard | True | True | pass | all constraints satisfied |
+| trap-warranty | trap | None | True | pass | refused as expected |
+| trap-price | trap | None | True | pass | refused as expected |
+| trap-bluetooth | trap | None | True | pass | refused as expected |
+| trap-usb-voltage-only | hard | True | True | pass | all constraints satisfied |

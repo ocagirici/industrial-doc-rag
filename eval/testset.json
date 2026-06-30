@@ -1,0 +1,93 @@
+{
+  "_schema": "Each case: id, difficulty (easy|medium|hard|trap), question, plus any of the constraint fields documented in evaluator.py (expected, expected_any, expected_exactly + candidate_pool, expected_none, must_refuse, expected_page). Add your own cases here, or pass a different file with `--testset path.json`. Traps (must_refuse / expected_none) are what stop the harness from trivially scoring 100% — keep them.",
+  "cases": [
+    {
+      "id": "easy-usb-current",
+      "difficulty": "easy",
+      "question": "What is the USB port output current?",
+      "expected_page": 17,
+      "expected": ["0.8"]
+    },
+    {
+      "id": "easy-object-height",
+      "difficulty": "easy",
+      "question": "What is the tallest object I can place underneath the desk?",
+      "expected_page": 2,
+      "expected": ["20"]
+    },
+    {
+      "id": "easy-assembly-people",
+      "difficulty": "easy",
+      "question": "How many people are needed to assemble the desk?",
+      "expected_page": 3,
+      "expected_any": ["2", "two"]
+    },
+    {
+      "id": "med-reset",
+      "difficulty": "medium",
+      "question": "How do I reset the desk?",
+      "expected_page": 15,
+      "expected": ["down"],
+      "expected_any": ["buzzer", "lowest", "RST"]
+    },
+    {
+      "id": "med-lock",
+      "difficulty": "medium",
+      "question": "How do I lock the control panel display?",
+      "expected_page": 16,
+      "expected": ["LOC"]
+    },
+    {
+      "id": "med-height-limit",
+      "difficulty": "medium",
+      "question": "What is the maximum height limit range I can set the desk to?",
+      "expected_page": 17,
+      "expected": ["120"],
+      "expected_any": ["96", "cm"]
+    },
+    {
+      "id": "med-jog-continuation",
+      "difficulty": "medium",
+      "question": "What is the difference between Jog and Continuation mode?",
+      "expected_page": 16,
+      "expected": ["jog", "continuation"]
+    },
+    {
+      "id": "trap-lower-key",
+      "difficulty": "hard",
+      "question": "To lower the desk, which single key do you press: up or down?",
+      "expected_page": 15,
+      "expected": ["down"],
+      "expected_none": ["up"]
+    },
+    {
+      "id": "trap-warranty",
+      "difficulty": "trap",
+      "question": "What is the warranty period for this desk?",
+      "must_refuse": true,
+      "expected_none": ["year", "years", "month", "months"]
+    },
+    {
+      "id": "trap-price",
+      "difficulty": "trap",
+      "question": "How much does this standing desk cost?",
+      "must_refuse": true,
+      "expected_none": ["usd", "eur", "dollar", "euro"]
+    },
+    {
+      "id": "trap-bluetooth",
+      "difficulty": "trap",
+      "question": "How do I pair the desk with Bluetooth on my phone?",
+      "must_refuse": true,
+      "expected_none": ["pairing mode", "settings menu"]
+    },
+    {
+      "id": "trap-usb-voltage-only",
+      "difficulty": "hard",
+      "question": "What is the USB port output voltage, in volts?",
+      "expected_page": 17,
+      "expected": ["5"],
+      "expected_none": ["0.8"]
+    }
+  ]
+}

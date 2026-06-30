@@ -1,18 +1,16 @@
-"""Evaluation harness: retrieval hit-rate + answer-quality over an eval set.
+"""Evaluation runner: scores a testset against the live RAG loop.
 
-For each case we run the full RAG loop once and measure two things:
-  * hit  — did the gold source (and page, if specified) appear in the retrieved
-           top-k chunks? (retrieval quality)
-  * keyword_score — fraction of expected keywords present in the answer, a cheap
-           proxy for answer grounding (no LLM judge, no API cost beyond the answer)
-
-Results are printed, saved to eval/results.csv, and written as a Markdown table
-to eval/results.md for pasting into the README.
+Each case runs through ``answer_question`` once; the answer is scored against the
+case's constraints by ``evaluator.score_case`` (see that module for the schema).
+Reports overall pass-rate, retrieval hit-rate, a per-difficulty breakdown, and a
+failure-category breakdown — then writes results.csv and results.md.
 
 Run (after ingesting the referenced documents):
     python -m eval.run_eval
+    python -m eval.run_eval --testset eval/my_cases.json --top-k 8
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -20,75 +18,88 @@ import pandas as pd
 
 from app.core.config import settings
 from app.retrieval.answer import answer_question
+from eval.evaluator import CaseResult, score_case
 
 EVAL_DIR = Path(__file__).parent
-EVAL_SET = EVAL_DIR / "eval_set.json"
 CSV_OUT = EVAL_DIR / "results.csv"
 MD_OUT = EVAL_DIR / "results.md"
 
 
-def keyword_score(answer: str, keywords: list[str]) -> float:
-    """Fraction of expected keywords present in the answer (case-insensitive)."""
-    if not keywords:
-        return 1.0
-    lowered = answer.lower()
-    found = sum(1 for kw in keywords if kw.lower() in lowered)
-    return found / len(keywords)
-
-
-def evaluate_case(case: dict, top_k: int) -> dict:
-    """Run one eval case through the RAG loop and score it."""
+def run_case(case: dict, top_k: int) -> CaseResult:
+    """Execute the RAG loop for one case and score the answer."""
     result = answer_question(case["question"], k=top_k)
-
-    retrieved = {(s.source, s.page) for s in result.sources}
-    expected_source = case["expected_source"]
-    expected_page = case.get("expected_page")
-    if expected_page is None:
-        hit = any(src == expected_source for src, _ in retrieved)
-    else:
-        hit = (expected_source, expected_page) in retrieved
-
-    score = keyword_score(result.answer, case.get("keywords", []))
-
-    return {
-        "question": case["question"],
-        "expected_source": expected_source,
-        "hit": hit,
-        "keyword_score": round(score, 2),
-        "retrieved": ", ".join(sorted({src for src, _ in retrieved})) or "(none)",
-        "answer": result.answer.replace("\n", " "),
-    }
+    retrieved_pages = {s.page for s in result.sources}
+    return score_case(case, result.answer, retrieved_pages)
 
 
-def to_markdown(df: pd.DataFrame) -> str:
-    """Render the results as a Markdown table without extra dependencies."""
-    cols = ["question", "expected_source", "hit", "keyword_score"]
-    view = df[cols]
-    header = "| " + " | ".join(cols) + " |"
-    sep = "| " + " | ".join("---" for _ in cols) + " |"
-    rows = ["| " + " | ".join(str(v) for v in row) + " |" for row in view.values]
-    return "\n".join([header, sep, *rows])
+def build_report(results: list[CaseResult], top_k: int) -> tuple[pd.DataFrame, str]:
+    """Build the results DataFrame and a Markdown report."""
+    df = pd.DataFrame([r.__dict__ for r in results])
+
+    passed = int(df["passed"].sum())
+    total = len(df)
+    scored_retrieval = df[df["retrieval_hit"].notna()]
+    hit_rate = scored_retrieval["retrieval_hit"].mean() if len(scored_retrieval) else float("nan")
+
+    by_diff = (
+        df.groupby("difficulty")["passed"].agg(["sum", "count"]).reset_index()
+    )
+    diff_lines = [
+        f"- {row.difficulty}: {int(row['sum'])}/{int(row['count'])}"
+        for _, row in by_diff.iterrows()
+    ]
+
+    fails = df[~df["passed"]]
+    cat_lines = [
+        f"- {cat}: {n}" for cat, n in fails["category"].value_counts().items()
+    ] or ["- (none)"]
+
+    case_cols = ["id", "difficulty", "retrieval_hit", "passed", "category", "detail"]
+    header = "| " + " | ".join(case_cols) + " |"
+    sep = "| " + " | ".join("---" for _ in case_cols) + " |"
+    rows = [
+        "| " + " | ".join(str(df.loc[i, c]) for c in case_cols) + " |"
+        for i in df.index
+    ]
+
+    hit_str = "n/a" if scored_retrieval.empty else f"{hit_rate:.0%}"
+    report = "\n".join(
+        [
+            f"## Eval results ({total} cases, top_k={top_k})",
+            "",
+            f"- **Answer pass-rate: {passed}/{total} ({passed / total:.0%})**",
+            f"- Retrieval hit-rate (page-level, {len(scored_retrieval)} answerable cases): {hit_str}",
+            "",
+            "**By difficulty:**",
+            *diff_lines,
+            "",
+            "**Failures by category:**",
+            *cat_lines,
+            "",
+            header,
+            sep,
+            *rows,
+            "",
+        ]
+    )
+    return df, report
 
 
 def main() -> None:
-    cases = json.loads(EVAL_SET.read_text(encoding="utf-8"))["cases"]
-    records = [evaluate_case(c, settings.top_k) for c in cases]
-    df = pd.DataFrame(records)
+    parser = argparse.ArgumentParser(description="Run the RAG eval harness.")
+    parser.add_argument("--testset", default=str(EVAL_DIR / "testset.json"))
+    parser.add_argument("--top-k", type=int, default=settings.top_k)
+    args = parser.parse_args()
 
-    hit_rate = df["hit"].mean()
-    mean_keyword = df["keyword_score"].mean()
+    cases = json.loads(Path(args.testset).read_text(encoding="utf-8"))["cases"]
+    results = [run_case(c, args.top_k) for c in cases]
 
+    df, report = build_report(results, args.top_k)
     df.to_csv(CSV_OUT, index=False)
-    summary = (
-        f"**Eval summary** ({len(df)} cases, top_k={settings.top_k})\n\n"
-        f"- Retrieval hit-rate: {hit_rate:.0%}\n"
-        f"- Mean keyword score: {mean_keyword:.0%}\n"
-    )
-    MD_OUT.write_text(summary + "\n" + to_markdown(df) + "\n", encoding="utf-8")
+    MD_OUT.write_text(report, encoding="utf-8")
 
-    print(summary)
-    print(to_markdown(df))
-    print(f"\nwrote {CSV_OUT.name} and {MD_OUT.name}")
+    print(report)
+    print(f"wrote {CSV_OUT.name} and {MD_OUT.name}")
 
 
 if __name__ == "__main__":

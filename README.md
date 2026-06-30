@@ -110,41 +110,64 @@ If the retrieved context doesn't contain the answer, the assistant replies
 
 ## Evaluation
 
-The harness runs the full RAG loop over a small Q/A set and reports two metrics:
+A constraint-based harness (inspired by
+[agent-eval-harness](https://github.com/ocagirici/agent-eval-harness)) scores each
+case along two axes:
 
-- **Retrieval hit-rate** — did the gold source (and page, if specified) appear in
-  the retrieved top-k chunks?
-- **Keyword score** — fraction of expected keywords present in the answer (a cheap,
-  API-free proxy for grounding; swappable for an LLM-as-judge).
+- **Answer pass/fail** — the answer is checked against per-case *constraints*, not a
+  fuzzy keyword score, so the eval can actually fail and discriminate.
+- **Retrieval hit-rate** — page-level diagnostic: did the gold page appear in the
+  retrieved top-k? (Source-level would be a trivial 100% for a single-doc corpus.)
+
+Each case in [`eval/testset.json`](eval/testset.json) combines any of these
+constraints (full schema in [`eval/evaluator.py`](eval/evaluator.py)):
+
+| field | meaning |
+|-------|---------|
+| `expected` | every term must appear (AND) |
+| `expected_any` | at least one must appear (OR) |
+| `expected_exactly` + `candidate_pool` | these and nothing else from the pool |
+| `expected_none` | none may appear — catches over-answering / hallucination |
+| `must_refuse` | answer must be the "I don't know" refusal (adversarial / unanswerable) |
+| `expected_page` | gold page for the retrieval check |
+
+What gives it teeth: **adversarial trap cases** (unanswerable questions that must be
+refused; over-answer baits), **token-boundary numeric matching** (so `5` matches
+`5V` but not `0.85` or `120`), and **failure categorization**
+(`retrieval_miss` / `missing_fact` / `over_answer` / `hallucination`).
+
+**Add your own cases** by editing `testset.json`, or point at a different file:
 
 ```bash
-python -m eval.run_eval     # writes eval/results.csv and eval/results.md
+python -m eval.run_eval                          # default testset, top_k=5
+python -m eval.run_eval --testset my_cases.json --top-k 8
+# in Docker: docker compose exec api python -m eval.run_eval
 ```
-
-The cases in [`eval/eval_set.json`](eval/eval_set.json) are curated against a sample
-corpus (a standing-desk equipment manual). Re-curate them for your own documents.
-Because that corpus is a single document, hit-rate is matched at the **page** level
-(source-level would be a trivial 100%).
 
 ### Results
 
-`8 cases, top_k=5` — Retrieval hit-rate: **100%** · Mean keyword score: **100%**
+`12 cases, top_k=5` — **Answer pass-rate: 12/12 (100%)** · Retrieval hit-rate: **100%**
 
-| question | expected_source | hit | keyword_score |
-| --- | --- | --- | --- |
-| How do I reset the desk? | Desk User Manual.pdf | True | 1.0 |
-| How do I set a memory height preset on the hand controller? | Desk User Manual.pdf | True | 1.0 |
-| How do I lock the control panel display? | Desk User Manual.pdf | True | 1.0 |
-| What is the difference between Jog and Continuation mode? | Desk User Manual.pdf | True | 1.0 |
-| What is the USB port output voltage and current? | Desk User Manual.pdf | True | 1.0 |
-| What height range can the maximum and minimum height limits be set to? | Desk User Manual.pdf | True | 1.0 |
-| What is the tallest object I can place underneath the desk? | Desk User Manual.pdf | True | 1.0 |
-| How long does assembly take and how many people are needed? | Desk User Manual.pdf | True | 1.0 |
+| id | difficulty | retrieval_hit | passed | category |
+| --- | --- | --- | --- | --- |
+| easy-usb-current | easy | True | True | pass |
+| easy-object-height | easy | True | True | pass |
+| easy-assembly-people | easy | True | True | pass |
+| med-reset | medium | True | True | pass |
+| med-lock | medium | True | True | pass |
+| med-height-limit | medium | True | True | pass |
+| med-jog-continuation | medium | True | True | pass |
+| trap-lower-key | hard | True | True | pass |
+| trap-warranty | trap | — | True | pass (refused) |
+| trap-price | trap | — | True | pass (refused) |
+| trap-bluetooth | trap | — | True | pass (refused) |
+| trap-usb-voltage-only | hard | True | True | pass |
 
-> A clean sweep here reflects 8 answerable questions over one well-structured manual —
-> a sanity-level smoke eval, not a stress test. Anti-hallucination is spot-checked
-> separately: asking something the manual doesn't cover (e.g. "What is the warranty
-> period?") correctly returns _"I don't know based on the provided documents."_
+The harness is **not** pinned at 100% — it discriminates. Starving retrieval to
+`--top-k 1` drops it to **10/12 (83%)** with retrieval-induced failures, and earlier
+trap iterations surfaced `hallucination`-category failures. A clean sweep at `top_k=5`
+means Claude Haiku genuinely handles these 12 cases — including 3 unanswerable
+refusals and 2 over-answer/numeric traps — not that the metric is blunt.
 
 ## What I'd add for production
 
