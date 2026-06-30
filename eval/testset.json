@@ -88,6 +88,30 @@
       "expected_page": 17,
       "expected": ["5"],
       "expected_none": ["0.8"]
+    },
+    {
+      "id": "fail-travel-range",
+      "difficulty": "hard",
+      "question": "What is the total vertical height-adjustment range of the desk, in centimeters (a single number)?",
+      "expected_page": 17,
+      "expected": ["48"],
+      "_note": "KNOWN FAILURE: total travel = 120cm ceiling - 72cm floor = 48cm. The model gives the bands (72-120) or computes wrong (24cm) but does not reliably produce 48. Documents a multi-hop numeric-reasoning limitation."
+    },
+    {
+      "id": "pass-motor-error-codes",
+      "difficulty": "hard",
+      "question": "List every error code that relates to the motor.",
+      "expected_page": 18,
+      "expected": ["E11", "E12", "E13", "E14", "E15", "E16", "E17", "E18"],
+      "_note": "HARD but PASSES: exhaustive enumeration. Interesting contrast with fail-error-code-count below — the model can list all the codes but cannot count them."
+    },
+    {
+      "id": "fail-error-code-count",
+      "difficulty": "hard",
+      "question": "How many distinct error codes are listed in the error code table in total?",
+      "expected_page": 18,
+      "expected": ["20"],
+      "_note": "KNOWN FAILURE: there are 20 codes (E01-E08, HOT, E11-E18, E40-E43). The model lists all 20 correctly but miscounts the total as 24 - a genuine counting/aggregation limitation."
     }
   ]
 }

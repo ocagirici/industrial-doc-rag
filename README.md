@@ -146,7 +146,7 @@ python -m eval.run_eval --testset my_cases.json --top-k 8
 
 ### Results
 
-`12 cases, top_k=5` — **Answer pass-rate: 12/12 (100%)** · Retrieval hit-rate: **100%**
+`15 cases, top_k=5` — **Answer pass-rate: 13/15 (87%)** · Retrieval hit-rate: **100%**
 
 | id | difficulty | retrieval_hit | passed | category |
 | --- | --- | --- | --- | --- |
@@ -162,12 +162,24 @@ python -m eval.run_eval --testset my_cases.json --top-k 8
 | trap-price | trap | — | True | pass (refused) |
 | trap-bluetooth | trap | — | True | pass (refused) |
 | trap-usb-voltage-only | hard | True | True | pass |
+| **fail-travel-range** | hard | True | **False** | **missing_fact** |
+| pass-motor-error-codes | hard | True | True | pass |
+| **fail-error-code-count** | hard | True | **False** | **missing_fact** |
 
-The harness is **not** pinned at 100% — it discriminates. Starving retrieval to
-`--top-k 1` drops it to **10/12 (83%)** with retrieval-induced failures, and earlier
-trap iterations surfaced `hallucination`-category failures. A clean sweep at `top_k=5`
-means Claude Haiku genuinely handles these 12 cases — including 3 unanswerable
-refusals and 2 over-answer/numeric traps — not that the metric is blunt.
+**Two documented failures — genuine limitations, not rigged:**
+
+- **`fail-travel-range`** — asked for the total travel range in cm, the model gives
+  the bands (72–120 cm) or computes wrong (24 cm) but won't reliably produce the
+  correct **48 cm** (= 120 − 72). A multi-hop numeric-reasoning gap.
+- **`fail-error-code-count`** — the model **lists all 20 error codes correctly** but
+  reports the total as **24**. A counting/aggregation gap (contrast
+  `pass-motor-error-codes`, which it enumerates fine — it can list, just not count).
+
+Both trace to the LLM, not retrieval (hit-rate stays 100%). The harness also
+discriminates on retrieval: starving it to `--top-k 1` drops the score to **83%**
+with `retrieval_miss` failures. The passing cases — including 3 unanswerable refusals
+and the over-answer/numeric traps — are genuinely handled, not artifacts of a blunt
+metric.
 
 ## What I'd add for production
 

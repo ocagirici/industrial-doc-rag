@@ -1,16 +1,16 @@
-## Eval results (12 cases, top_k=5)
+## Eval results (15 cases, top_k=5)
 
-- **Answer pass-rate: 12/12 (100%)**
-- Retrieval hit-rate (page-level, 9 answerable cases): 100%
+- **Answer pass-rate: 13/15 (87%)**
+- Retrieval hit-rate (page-level, 12 answerable cases): 100%
 
 **By difficulty:**
 - easy: 3/3
-- hard: 2/2
+- hard: 3/5
 - medium: 4/4
 - trap: 3/3
 
 **Failures by category:**
-- (none)
+- missing_fact: 2
 
 | id | difficulty | retrieval_hit | passed | category | detail |
 | --- | --- | --- | --- | --- | --- |
@@ -26,3 +26,6 @@
 | trap-price | trap | None | True | pass | refused as expected |
 | trap-bluetooth | trap | None | True | pass | refused as expected |
 | trap-usb-voltage-only | hard | True | True | pass | all constraints satisfied |
+| fail-travel-range | hard | True | False | missing_fact | missing: ['48'] |
+| pass-motor-error-codes | hard | True | True | pass | all constraints satisfied |
+| fail-error-code-count | hard | True | False | missing_fact | missing: ['20'] |
