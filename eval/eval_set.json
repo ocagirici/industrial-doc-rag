@@ -1,53 +1,53 @@
 {
-  "_comment": "Curate these against YOUR ingested documents. Each case names the gold source file (and optionally page) the answer should come from, plus keywords the answer should contain. hit-rate checks the gold source appears in the retrieved top-k; keyword_score checks answer grounding. Replace the examples below with real Q/A for your corpus.",
+  "_comment": "Cases keyed to the ingested 'Desk User Manual.pdf' (Maidesite standing desk). Because the corpus is a single document, hit-rate is matched at the PAGE level (expected_page) — source-level would be a trivial 100%. expected_page uses 1-indexed PDF pages (matches the [file p.N] citations). keyword_score checks the answer contains the expected grounded terms. Re-curate these if you ingest a different corpus. Bonus manual anti-hallucination check (not scored here): ask 'What is the warranty period?' — the manual doesn't cover it, so a correct system replies 'I don't know based on the provided documents.'",
   "cases": [
     {
-      "question": "What is the maximum operating pressure of the pump?",
-      "expected_source": "pump_manual.pdf",
-      "expected_page": 3,
-      "keywords": ["pressure", "bar"]
+      "question": "How do I reset the desk?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 15,
+      "keywords": ["down", "buzzer"]
     },
     {
-      "question": "What torque should the housing bolts be tightened to?",
-      "expected_source": "pump_manual.pdf",
-      "expected_page": 5,
-      "keywords": ["torque", "Nm"]
+      "question": "How do I set a memory height preset on the hand controller?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 15,
+      "keywords": ["memory", "height"]
     },
     {
-      "question": "What is the recommended lubricant for the bearings?",
-      "expected_source": "pump_manual.pdf",
-      "expected_page": null,
-      "keywords": ["lubricant", "grease"]
+      "question": "How do I lock the control panel display?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 16,
+      "keywords": ["lock", "LOC"]
     },
     {
-      "question": "How often should the filter be replaced?",
-      "expected_source": "maintenance_guide.pdf",
-      "expected_page": null,
-      "keywords": ["filter", "months"]
+      "question": "What is the difference between Jog and Continuation mode?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 16,
+      "keywords": ["jog", "continuation"]
     },
     {
-      "question": "What is the operating temperature range?",
-      "expected_source": "datasheet.pdf",
-      "expected_page": 1,
-      "keywords": ["temperature", "°C"]
+      "question": "What is the USB port output voltage and current?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 17,
+      "keywords": ["5", "0.8"]
     },
     {
-      "question": "What power supply voltage does the unit require?",
-      "expected_source": "datasheet.pdf",
-      "expected_page": 1,
-      "keywords": ["voltage", "V"]
+      "question": "What height range can the maximum and minimum height limits be set to?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 17,
+      "keywords": ["120", "72"]
     },
     {
-      "question": "What safety equipment is required during maintenance?",
-      "expected_source": "maintenance_guide.pdf",
-      "expected_page": null,
-      "keywords": ["safety", "gloves"]
-    },
-    {
-      "question": "What is the weight of the assembled unit?",
-      "expected_source": "datasheet.pdf",
+      "question": "What is the tallest object I can place underneath the desk?",
+      "expected_source": "Desk User Manual.pdf",
       "expected_page": 2,
-      "keywords": ["weight", "kg"]
+      "keywords": ["20", "under"]
+    },
+    {
+      "question": "How long does assembly take and how many people are needed?",
+      "expected_source": "Desk User Manual.pdf",
+      "expected_page": 3,
+      "keywords": ["30", "2"]
     }
   ]
 }
